@@ -32,10 +32,7 @@ import javax.sql.DataSource;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -417,16 +414,33 @@ public class MySqlConnector {
     }
 
     public String addProject(UserInfo userInfo, Project project) throws DatabaseOperationException {
+        return addProject(userInfo, project, null, false);
+    }
+
+    private String addProject(UserInfo userInfo, Project project, String taskPublicId, boolean completed) throws DatabaseOperationException {
         checkConnection();
         if (!checkCountOfProjects(userInfo)) {
             throw new DatabaseOperationException("You can't save more than 100 projects");
         }
+
         int userId = getUserId(userInfo);
+        Integer taskId = getTaskId(taskPublicId);
+        String type;
+        if (taskId == null) {
+            type = "USER_PROJECT";
+        } else {
+            if (completed) {
+                type = "KOANS_TASK";
+            } else {
+                type = "INCOMPLETE_KOANS_TASK";
+            }
+        }
+
         PreparedStatement st = null;
         try {
             String publicId = idGenerator.nextProjectId();
 
-            st = connection.prepareStatement("INSERT INTO projects (owner_id, name, args, run_configuration, origin, public_id, read_only_files) VALUES (?,?,?,?,?,?,?) ");
+            st = connection.prepareStatement("INSERT INTO projects (owner_id, name, args, run_configuration, origin, public_id, read_only_files, type, task_id) VALUES (?,?,?,?,?,?,?,?,?) ");
             st.setString(1, userId + "");
             st.setString(2, escape(project.name));
             st.setString(3, project.args);
@@ -434,6 +448,12 @@ public class MySqlConnector {
             st.setString(5, project.originUrl);
             st.setString(6, publicId);
             st.setString(7, objectMapper.writeValueAsString(project.readOnlyFileNames));
+            st.setString(8, type);
+            if (taskId == null) {
+                st.setNull(9, Types.INTEGER);
+            } else {
+                st.setInt(9, taskId);
+            }
             st.execute();
 
             int projectId = getProjectId(userInfo, publicId);
@@ -502,7 +522,7 @@ public class MySqlConnector {
             st = connection.prepareStatement(
                     "SELECT projects.public_id, projects.name FROM projects JOIN " +
                             "users ON projects.owner_id = users.id WHERE " +
-                            "(users.client_id = ? AND users.provider = ?)"
+                            "(users.client_id = ? AND users.provider = ? AND projects.type = 'USER_PROJECT')"
             );
             st.setString(1, userInfo.getId());
             st.setString(2, userInfo.getType());
@@ -812,6 +832,26 @@ public class MySqlConnector {
         }
     }
 
+    public Integer getTaskId(String taskPublicId) throws DatabaseOperationException {
+        checkConnection();
+        PreparedStatement st = null;
+        ResultSet rs = null;
+        try {
+            st = connection.prepareStatement("SELECT koan_tasks.id FROM koan_tasks WHERE public_id = ?");
+            st.setString(1, taskPublicId);
+            rs = st.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            throw new DatabaseOperationException("Unknown exception", e);
+        } finally {
+            closeStatementAndResultSet(st, rs);
+        }
+    }
+
     @Nullable
     public String getProjectNameById(String projectId) throws DatabaseOperationException {
         checkConnection();
@@ -855,6 +895,44 @@ public class MySqlConnector {
             }
         } catch (Throwable e) {
             ErrorWriter.ERROR_WRITER.writeExceptionToExceptionAnalyzer(e, SessionInfo.TypeOfRequest.WORK_WITH_DATABASE.name(), "unknown", "Get file " + publicId);
+            throw new DatabaseOperationException("Unknown exception", e);
+        } finally {
+            closeStatementAndResultSet(st, rs);
+        }
+    }
+
+    public void saveSolution(UserInfo userInfo, Project solution, boolean completed) throws DatabaseOperationException {
+        checkConnection();
+        String solutionId = getSolutionId(userInfo, solution);
+        if (solutionId == null) {
+            addProject(userInfo, solution, solution.id, completed);
+        }
+    }
+
+    @Nullable
+    private String getSolutionId(UserInfo userInfo, Project solution) throws DatabaseOperationException {
+        PreparedStatement st = null;
+        ResultSet rs = null;
+        try {
+            st = connection.prepareStatement(
+                    "SELECT projects.public_id FROM projects JOIN " +
+                            "users ON users.id = projects.owner_id JOIN " +
+                            "koan_tasks ON koan_tasks.id = projects.task_id WHERE " +
+                            "users.provider = ? AND " +
+                            "users.client_id = ? AND " +
+                            "koan_tasks.public_id = ?"
+            );
+            st.setString(1, userInfo.getType());
+            st.setString(2, userInfo.getId());
+            st.setString(3, solution.id);
+            rs = st.executeQuery();
+            if (rs.next()) {
+                return rs.getString(1);
+            } else {
+                return null;
+            }
+        } catch (Throwable e) {
+            ErrorWriter.ERROR_WRITER.writeExceptionToExceptionAnalyzer(e, SessionInfo.TypeOfRequest.WORK_WITH_DATABASE.name(), "unknown", "Get solution id " + solution.id);
             throw new DatabaseOperationException("Unknown exception", e);
         } finally {
             closeStatementAndResultSet(st, rs);
