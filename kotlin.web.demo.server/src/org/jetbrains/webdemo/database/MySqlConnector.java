@@ -549,7 +549,7 @@ public class MySqlConnector {
     }
 
 
-    public String getProjectContent(String id) throws DatabaseOperationException {
+    public Project getProjectContent(String id) throws DatabaseOperationException {
         checkConnection();
         PreparedStatement st = null;
         ResultSet rs = null;
@@ -583,16 +583,22 @@ public class MySqlConnector {
                     ProjectFile file = new ProjectFile(unEscape(rs.getString("name")), rs.getString("content"), true, rs.getString("public_id"), ProjectFile.Type.KOTLIN_FILE);
                     project.files.add(file);
                 }
-                return objectMapper.writeValueAsString(project);
+                return project;
             } else {
                 return null;
             }
         } catch (Throwable e) {
             ErrorWriter.ERROR_WRITER.writeExceptionToExceptionAnalyzer(e, SessionInfo.TypeOfRequest.WORK_WITH_DATABASE.name(), "unknown", id);
-            return ResponseUtils.getErrorInJson("Unknown error while loading your project");
+            throw new DatabaseOperationException("Unknown error while loading your project", e);
         } finally {
             closeStatementAndResultSet(st, rs);
         }
+    }
+
+    public Project getStoredSolution(UserInfo userInfo, String taskId) throws DatabaseOperationException {
+        String solutionId = getSolutionId(userInfo, taskId);
+        if(solutionId == null) return null;
+        return getProjectContent(solutionId);
     }
 
     public boolean isProjectExists(String publicId) throws DatabaseOperationException {
@@ -903,14 +909,15 @@ public class MySqlConnector {
 
     public void saveSolution(UserInfo userInfo, Project solution, boolean completed) throws DatabaseOperationException {
         checkConnection();
-        String solutionId = getSolutionId(userInfo, solution);
+        String solutionId = getSolutionId(userInfo, solution.id);
         if (solutionId == null) {
             addProject(userInfo, solution, solution.id, completed);
         }
     }
 
     @Nullable
-    private String getSolutionId(UserInfo userInfo, Project solution) throws DatabaseOperationException {
+    private String getSolutionId(UserInfo userInfo, String taskId) throws DatabaseOperationException {
+        if(!userInfo.isLogin()) return null;
         PreparedStatement st = null;
         ResultSet rs = null;
         try {
@@ -924,7 +931,7 @@ public class MySqlConnector {
             );
             st.setString(1, userInfo.getType());
             st.setString(2, userInfo.getId());
-            st.setString(3, solution.id);
+            st.setString(3, taskId);
             rs = st.executeQuery();
             if (rs.next()) {
                 return rs.getString(1);
@@ -932,7 +939,7 @@ public class MySqlConnector {
                 return null;
             }
         } catch (Throwable e) {
-            ErrorWriter.ERROR_WRITER.writeExceptionToExceptionAnalyzer(e, SessionInfo.TypeOfRequest.WORK_WITH_DATABASE.name(), "unknown", "Get solution id " + solution.id);
+            ErrorWriter.ERROR_WRITER.writeExceptionToExceptionAnalyzer(e, SessionInfo.TypeOfRequest.WORK_WITH_DATABASE.name(), "unknown", "Get solution id " + taskId);
             throw new DatabaseOperationException("Unknown exception", e);
         } finally {
             closeStatementAndResultSet(st, rs);
