@@ -138,6 +138,33 @@ public class MySqlConnector {
         }
     }
 
+    public void createTaskList(List<String> tasksIdentifiers) throws DatabaseOperationException {
+        checkConnection();
+        PreparedStatement st = null;
+        ResultSet rs = null;
+        List<String> storedTasksIdentifiers = new ArrayList<String>();
+        try {
+            st = connection.prepareStatement("SELECT koan_tasks.public_id FROM koan_tasks");
+            rs = st.executeQuery();
+            while (rs.next()){
+                storedTasksIdentifiers.add(rs.getString("public_id"));
+            }
+            for(String taskId : tasksIdentifiers){
+                if (storedTasksIdentifiers.contains(taskId)) continue;
+                try(PreparedStatement insertStatement = connection.prepareStatement(
+                        "INSERT koan_tasks (public_id) VALUES (?)"
+                )){
+                    insertStatement.setString(1, taskId);
+                    insertStatement.executeUpdate();
+                }
+            }
+        } catch (SQLException e){
+            throw new DatabaseOperationException("Can't create tasks list", e);
+        } finally {
+            closeStatementAndResultSet(st, rs);
+        }
+    }
+
     private boolean compareVersion() throws DatabaseOperationException {
         checkConnection();
         PreparedStatement st = null;
