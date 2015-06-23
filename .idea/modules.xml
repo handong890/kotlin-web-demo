@@ -10,6 +10,7 @@
       <module fileurl="file://$PROJECT_DIR$/kotlin.web.demo.frontend/kotlin.web.demo.frontend.iml" filepath="$PROJECT_DIR$/kotlin.web.demo.frontend/kotlin.web.demo.frontend.iml" />
       <module fileurl="file://$PROJECT_DIR$/kotlin.web.demo.server/kotlin.web.demo.server.iml" filepath="$PROJECT_DIR$/kotlin.web.demo.server/kotlin.web.demo.server.iml" />
       <module fileurl="file://$PROJECT_DIR$/kotlin.web.demo.test/kotlin.web.demo.test.iml" filepath="$PROJECT_DIR$/kotlin.web.demo.test/kotlin.web.demo.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/kotlin.web.demo.workshop/kotlin.web.demo.workshop.iml" filepath="$PROJECT_DIR$/kotlin.web.demo.workshop/kotlin.web.demo.workshop.iml" />
     </modules>
   </component>
 </project>
