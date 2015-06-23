@@ -32,3 +32,11 @@ open class Folder(
         childFolders.forEach { it.parent = this }
     }
 }
+
+class TasksFolder(
+        name: String,
+        id: String,
+        val isSequential: Boolean,
+        projects: List<ProjectHeader>,
+        childFolders: List<Folder>
+) : Folder(name, id, projects, childFolders)

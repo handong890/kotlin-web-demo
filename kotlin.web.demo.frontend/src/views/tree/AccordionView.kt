@@ -18,10 +18,7 @@ package views.tree
 
 import application.Application
 import jquery.jq
-import model.File
-import model.Project
-import model.ProjectType
-import model.UserProject
+import model.*
 import org.w3c.dom.HTMLDivElement
 import org.w3c.dom.HTMLElement
 import utils.*
@@ -118,7 +115,7 @@ class AccordionView(
                 } else if (folder.name == "Workshop") {
                     publicLinksFolder = FolderViewWithProgress(
                             parentNode = element,
-                            content = folder,
+                            content = folder as TasksFolder,
                             parent = null,
                             hasProgressBar = true,
                             onProjectDeleted = onProjectDeleted,

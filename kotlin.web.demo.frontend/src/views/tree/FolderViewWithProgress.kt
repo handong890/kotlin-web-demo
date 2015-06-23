@@ -20,6 +20,7 @@ import application.Application
 import model.Folder
 import model.Project
 import model.Task
+import model.TasksFolder
 import org.w3c.dom.HTMLDivElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.events.Event
@@ -31,7 +32,7 @@ import kotlin.dom.addClass
 
 
 class FolderViewWithProgress(parentNode: HTMLElement,
-                             content: Folder,
+                             content: TasksFolder,
                              parent: FolderView?,
                              hasProgressBar: Boolean = false,
                              onProjectDeleted: (ProjectView) -> Unit,
@@ -44,6 +45,9 @@ class FolderViewWithProgress(parentNode: HTMLElement,
     val counter = document.createElement("div") as HTMLDivElement
 
     init {
+        if(content.isSequential){
+            contentElement.addClass("sequential")
+        }
         contentElement.addClass("progress-folder-content")
         if (progressBar != null) {
             progressBar.className = "progressbar"
@@ -118,7 +122,7 @@ class FolderViewWithProgress(parentNode: HTMLElement,
     }
 
     override fun initializeChildFolders() = content.childFolders.mapTo(childFolders, {
-        FolderViewWithProgress(contentElement, it, this, false, onProjectDeleted, onProjectHeaderClick, onProjectSelected, onProjectCreated)
+        FolderViewWithProgress(contentElement, it as TasksFolder, this, false, onProjectDeleted, onProjectHeaderClick, onProjectSelected, onProjectCreated)
     })
 
     private fun getNumberOfCompletedProjects(): Int {

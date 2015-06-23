@@ -18,6 +18,7 @@ package providers
 
 import model.Folder
 import model.ProjectType
+import model.TasksFolder
 import utils.blockContent
 import utils.unBlockContent
 import views.ActionStatusMessage
@@ -43,7 +44,11 @@ class HeadersProvider(
             }
         }
         val childFolders = content.childFolders.map {  createFolder(it, type) }
-        val folder = Folder(content.name, content.id, projects, childFolders)
+        val folder = if(type == ProjectType.TASK){
+            TasksFolder(content.name, content.id, content.sequential, projects, childFolders)
+        } else {
+            Folder(content.name, content.id, projects, childFolders)
+        }
         return folder
     }
 
@@ -139,6 +144,7 @@ class HeadersProvider(
 
 native
 interface FolderContent {
+    val sequential: Boolean
     val name: String
     val id: String
     val projects: Array<ProjectInfo>

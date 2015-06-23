@@ -20,6 +20,7 @@ import html4k.dom.append
 import html4k.js.div
 import jquery.jq
 import model.Folder
+import model.TasksFolder
 import org.w3c.dom.HTMLDivElement
 import org.w3c.dom.HTMLElement
 import utils.jquery.ui.accordion

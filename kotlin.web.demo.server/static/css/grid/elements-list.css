@@ -162,6 +162,26 @@
     background: url("/static/images/icons_all_sprite.png") -50px -50px;
 }
 
+.sequential>.examples-project-name {
+    display: none;
+}
+
+.sequential>.examples-project-name.selected {
+    display: block;
+}
+
+.sequential>:first-child {
+    display: block;
+}
+
+.sequential>.completed {
+    display: block;
+}
+
+.completed + div + :not(.completed){
+    display: block;
+}
+
 #examples-list .ui-icon {
     position: relative;
     left: auto;
